@@ -1,0 +1,35 @@
+{
+  "name": "react-native-peripheral",
+  "title": "React Native Peripheral",
+  "version": "1.0.0",
+  "description": "TODO",
+  "main": "lib/index",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrbela/react-native-peripheral.git",
+    "baseUrl": "https://github.com/petrbela/react-native-peripheral"
+  },
+  "keywords": [
+    "react-native"
+  ],
+  "author": {
+    "name": "Petr Bela",
+    "email": "github@petrbela.com"
+  },
+  "license": "MIT",
+  "licenseFilename": "LICENSE",
+  "readmeFilename": "README.md",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-native": ">=0.59.0-rc.0 <1.0.x"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.9",
+    "@types/react-native": "^0.60.21",
+    "react": "^16.9.0",
+    "react-native": "^0.61.2"
+  }
+}
