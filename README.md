@@ -57,14 +57,14 @@ If the above didn't work:
   - Add `import com.reactnative.bleperipheral.RnBlePeripheralPackage;` to the imports at the top of the file
   - Add `new RnBlePeripheralPackage()` to the list returned by the `getPackages()` method
 2. Append the following lines to `android/settings.gradle`:
-  	```
-  	include ':react-native-peripheral'
-  	project(':react-native-peripheral').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-peripheral/android')
-  	```
+    ```
+    include ':react-native-peripheral'
+    project(':react-native-peripheral').projectDir = new File(rootProject.projectDir,   '../node_modules/react-native-peripheral/android')
+    ```
 3. Insert the following lines inside the dependencies block in `android/app/build.gradle`:
-  	```
+    ```
       compile project(':react-native-peripheral')
-  	``` -->
+    ``` -->
 
 </details>
 
@@ -74,30 +74,30 @@ If the above didn't work:
 import Peripheral, { Service, Characteristic } from 'react-native-peripheral';
 
 Peripheral.onStateChanged(state => {
-	// wait until Bluetooth is ready
-	if (state === 'poweredOn) {
-		// first, define a characteristic with a value
-		const ch = new Characteristic({
-			uuid: '...',
-			value: '...', // Base64-encoded string
-			properties: ['read', 'write']
-		})
+  // wait until Bluetooth is ready
+  if (state === 'poweredOn) {
+    // first, define a characteristic with a value
+    const ch = new Characteristic({
+      uuid: '...',
+      value: '...', // Base64-encoded string
+      properties: ['read', 'write']
+    })
 
-		// add the characteristic to a service
-		const service = new Service({
-			uuid: '...',
-			characteristics: [ch]
-		})
+    // add the characteristic to a service
+    const service = new Service({
+      uuid: '...',
+      characteristics: [ch]
+    })
 
-		// register GATT services that your device provides
-		Peripheral.addService(service).then(() => {
-			// start advertising to make your device discoverable
-			Peripheral.startAdvertising({
-				name: 'My BLE device',
-				serviceUuids: ['...']
-			})
-		})
-	}
+    // register GATT services that your device provides
+    Peripheral.addService(service).then(() => {
+      // start advertising to make your device discoverable
+      Peripheral.startAdvertising({
+        name: 'My BLE device',
+        serviceUuids: ['...']
+      })
+    })
+  }
 })
 
 ```
@@ -106,19 +106,19 @@ Note: `addService` and `startAdvertising` are conceptually independent events. A
 
 ### Dynamic Value
 
-If you want to change the characteristic value dynamically, instead of providing `value`, implement `onReadRequest` and `onWriteRequest` (if your characteristic supports these operations):
+If you want to change the characteristic value dynamically, instead of providing `value`, implement `onReadRequest` and `onWriteRequest` (if your characteristic supports `read` and `write` operations):
 
 ```js
 new Characteristic({
-	uuid: '...',
-	onReadRequest: (offset?: number) => {
-		const value = '...' // calculate the value
-		return Promise.resolve(value)
-	},
-	onWriteRequest: (value: string, offset?: number) => {
-		// store or do something with the value
-		this.value = value
-	}
+  uuid: '...',
+  onReadRequest: async (offset?: number) => {
+    const value = '...' // calculate the value
+    return value // you can also return a promise
+  },
+  onWriteRequest: async (value: string, offset?: number) => {
+    // store or do something with the value
+    this.value = value
+  },
 })
 ```
 
@@ -128,19 +128,19 @@ If the value in your characteristic changes frequently, BLE clients may want to 
 
 1. Include `notify` in the list of properties:
 
-	```js
-	const ch = new Characteristic({
-		// ...
-		properties: ['notify', ...]
-	})
-	```
+   ```js
+   const ch = new Characteristic({
+     // ...
+     properties: ['notify', ...]
+   })
+   ```
 
 2. Trigger `notify` with a value to send to subscribed clients:
 
-	```js
-	const value = '...'
-	ch.notify(value)
-	```
+   ```js
+   const value = '...'
+   ch.notify(value)
+   ```
 
 ### Base64
 
