@@ -1,7 +1,7 @@
 {
   "name": "react-native-peripheral",
   "title": "React Native Peripheral",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "TODO",
   "main": "lib/index",
   "scripts": {

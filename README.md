@@ -71,22 +71,22 @@ If the above didn't work:
 ## Usage
 
 ```js
-import Peripheral, { Service, Characteristic } from 'react-native-peripheral';
+import Peripheral, { Service, Characteristic } from 'react-native-peripheral'
 
 Peripheral.onStateChanged(state => {
   // wait until Bluetooth is ready
-  if (state === 'poweredOn) {
+  if (state === 'poweredOn') {
     // first, define a characteristic with a value
     const ch = new Characteristic({
       uuid: '...',
       value: '...', // Base64-encoded string
-      properties: ['read', 'write']
+      properties: ['read', 'write'],
     })
 
     // add the characteristic to a service
     const service = new Service({
       uuid: '...',
-      characteristics: [ch]
+      characteristics: [ch],
     })
 
     // register GATT services that your device provides
@@ -94,12 +94,11 @@ Peripheral.onStateChanged(state => {
       // start advertising to make your device discoverable
       Peripheral.startAdvertising({
         name: 'My BLE device',
-        serviceUuids: ['...']
+        serviceUuids: ['...'],
       })
     })
   }
 })
-
 ```
 
 Note: `addService` and `startAdvertising` are conceptually independent events. A BLE peripheral can start advertising regardless of whether if has defined any services. Conversely, you can define services which can be used by previously defined clients. However, in most cases, you'll want to do both.
