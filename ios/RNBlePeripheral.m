@@ -6,6 +6,7 @@
 #import <PromisesObjC/FBLPromise+Then.h>
 
 @implementation RNBlePeripheral {
+  bool hasListeners;
   CBPeripheralManager *manager;
   FBLPromise *startAdvertisingPromise;
   NSMutableDictionary<CBUUID *, FBLPromise *> *addingServicePromises;
@@ -45,6 +46,16 @@ RCT_EXPORT_MODULE();
   return @[ READ_REQUEST, STATE_CHANGED, WRITE_REQUEST ];
 }
 
+// Will be called when this module's first listener is added.
+- (void)startObserving {
+  hasListeners = YES;
+}
+
+// Will be called when this module's last listener is removed, or on dealloc.
+- (void)stopObserving {
+  hasListeners = NO;
+}
+
 RCT_REMAP_METHOD(getState,
                  getStateWithResolver: (RCTPromiseResolveBlock) resolve
                  rejecter: (RCTPromiseRejectBlock) reject) {
@@ -64,7 +75,7 @@ RCT_EXPORT_METHOD(addService: (CBMutableService *)service
     } rejecter:^(NSString *code, NSString *message, NSError *error) {
       [promise reject:error];
     }];
-    
+
     [promises addObject:promise];
   }
 
@@ -91,15 +102,15 @@ RCT_EXPORT_METHOD(removeService: (CBMutableService *) serviceToRemove
                   resolver: (RCTPromiseResolveBlock) resolve
                   rejecter: (RCTPromiseRejectBlock) reject) {
   CBMutableService *service = services[serviceToRemove.UUID];
-  
+
   if (service == nil) return
-    
+
   [manager removeService:service];
   [services removeObjectForKey:service.UUID];
   for (CBMutableCharacteristic *ch in service.characteristics) {
     [characteristics removeObjectForKey:ch.UUID];
   }
-  
+
   resolve(nil);
 }
 
@@ -109,7 +120,7 @@ RCT_REMAP_METHOD(removeAllServices,
   [manager removeAllServices];
   [services removeAllObjects];
   [characteristics removeAllObjects];
-  
+
   resolve(nil);
 }
 
@@ -128,7 +139,7 @@ RCT_EXPORT_METHOD(startAdvertising: (id)data
   }] catch:^(NSError * _Nonnull error) {
     reject(@"AdvertisingFailed", @"Advertising failed", error);
   }];
-  
+
   [self->manager startAdvertising:@{
     CBAdvertisementDataLocalNameKey: [RCTConvert NSString:data[@"name"]],
     CBAdvertisementDataServiceUUIDsKey: serviceUUIDs
@@ -139,40 +150,44 @@ RCT_REMAP_METHOD(stopAdvertising,
                  stopAdvertisingWithResolver: (RCTPromiseResolveBlock) resolve
                  rejecter: (RCTPromiseRejectBlock) reject) {
   [manager stopAdvertising];
-  
+
   [manager removeAllServices];
-  
+
   resolve(nil);
 }
 
 RCT_EXPORT_METHOD(respond: (NSString *)requestId
                   status: (CBATTError)status
-                  value: (nullable NSData *)value
+                  value: (nullable NSString *)value
                   resolver: (RCTPromiseResolveBlock)resolve
                   rejecter: (RCTPromiseRejectBlock)reject) {
   CBATTRequest *request = [pendingRequests objectForKey:requestId];
-  
+
   if (request == nil) return reject(@"invalid_request", @"Request with the given id does not exist.", nil);
-    
-  if (value != nil) request.value = value;
-  
+
+  if (value != nil) {
+    request.value = [[NSData alloc] initWithBase64EncodedString:value options:NSDataBase64DecodingIgnoreUnknownCharacters];
+  }
+
   [manager respondToRequest:request withResult:status];
-  
+
   [pendingRequests removeObjectForKey:requestId];
-  
+
   resolve(nil);
 }
 
 RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
-                  value: (NSData *)value
+                  value: (NSString *)value
                   resolver: (RCTPromiseResolveBlock)resolve
                   rejecter: (RCTPromiseRejectBlock)reject) {
   CBMutableCharacteristic *characteristic = characteristics[characteristicUuid];
-  
+
   if (characteristic == nil) return reject(@"NoCharacteristic", @"Characteristic does not exist", nil);
-  
-  BOOL sent = [manager updateValue:value forCharacteristic:characteristic onSubscribedCentrals:nil];
-  
+
+  NSData *data = [[NSData alloc] initWithBase64EncodedString:value options:NSDataBase64DecodingIgnoreUnknownCharacters];
+
+  BOOL sent = [manager updateValue:data forCharacteristic:characteristic onSubscribedCentrals:nil];
+
   if (sent) {
     resolve(nil);
   } else {
@@ -183,6 +198,8 @@ RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
 
 - (void)peripheralManagerDidUpdateState:
     (nonnull CBPeripheralManager *)peripheral {
+  if (!hasListeners) return;
+
   [self sendEventWithName:STATE_CHANGED body:@{
     @"state": [RCTConvert fromCBManagerState:peripheral.state]
   }];
@@ -190,33 +207,35 @@ RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
 
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didAddService:(CBService *)service error:(NSError *)error {
   FBLPromise *promise = addingServicePromises[service.UUID];
-  
+
   if (promise == nil) return;
-    
+
   if (error == nil) {
     [promise fulfill:nil];
   } else {
     [promise reject:error];
   }
-  
+
   [addingServicePromises removeObjectForKey:service.UUID];
 }
 
 - (void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error {
   if (startAdvertisingPromise == nil) return;
-  
+
   if (error == nil) {
     [startAdvertisingPromise fulfill:nil];
   } else {
     [startAdvertisingPromise reject:error];
   }
-  
+
   startAdvertisingPromise = nil;
 }
 
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request {
+  if (!hasListeners) return;
+
   NSString *requestId = [[NSUUID UUID] UUIDString];
-  
+
   [pendingRequests setValue:request forKey:requestId];
 
   [self sendEventWithName:READ_REQUEST body:@{
@@ -228,15 +247,17 @@ RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
 }
 
 -(void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveWriteRequests:(NSArray<CBATTRequest *> *)requests {
+  if (!hasListeners) return;
+
   for (CBATTRequest *request in requests) {
     NSString *requestId = [[NSUUID UUID] UUIDString];
-    
+
     [pendingRequests setValue:request forKey:requestId];
 
     [self sendEventWithName:WRITE_REQUEST body:@{
       @"requestId": requestId,
       @"offset": @(request.offset),
-      @"value": request.value,
+      @"value": [request.value base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength],
       @"characteristicUuid": request.characteristic.UUID,
       @"serviceUuid": request.characteristic.service.UUID,
     }];

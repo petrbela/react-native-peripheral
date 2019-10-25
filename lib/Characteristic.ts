@@ -5,37 +5,63 @@ const { RNBlePeripheral } = NativeModules
 export default class Characteristic {
   // descriptors?: Descriptor[];
 
+  /** Permissions assigned to the characteristic. */
   permissions?: Permission[]
 
+  /** Properties of the characteristic. */
   properties?: Property[]
 
+  /** UUID of the characteristic. */
   uuid: string
 
-  value?: ArrayBuffer
+  /** Base64-encoded value. */
+  value?: string
 
+  /**
+   * Define a GATT characteristic.
+   */
   constructor(params: {
+    /**
+     * Permissions assigned to the characteristic.
+     *
+     * A list of values `readable`, `writeable`, `readEncryptionRequired`, `writeEncryptionRequired`.
+     */
     permissions?: Permission[]
+    /**
+     * Properties of the characteristic.
+     *
+     * A list of `broadcast`, `read`, `writeWithoutResponse`, `write`, `notify`, `indicate`, `authenticatedSignedWrites`, `extendedProperties`, `notifyEncryptionRequired`, `indicateEncryptionRequired`.
+     */
     properties?: Property[]
+    /** UUID of the characteristic. */
     uuid: string
-    value?: ArrayBuffer
+    /** Base64-encoded value. You can set a static value here or provide `onReadRequest`/`onWriteRequest` to change it dynamically. */
+    value?: string
+    /** Implement to calculate value dynamically. */
+    onReadRequest?: (offset?: number) => Promise<string>
+    /** Implement to save value dynamically. */
+    onWriteRequest?: (data: string, offset?: number) => Promise<void>
   }) {
-    this.permissions = params.permissions
-    this.properties = params.properties
-    this.uuid = params.uuid
-    this.value = params.value
+    if (!params.uuid) throw new Error('Characteristic UUID is required!')
+
+    Object.assign(this, {
+      ...params,
+      uuid: params.uuid.toLowerCase(),
+    })
   }
 
-  onReadRequest(offset?: number): Promise<ArrayBuffer> {
-    return Promise.resolve(this.value)
+  onReadRequest(offset?: number): Promise<string> {
+    return Promise.resolve(this.value || '')
   }
 
-  onWriteRequest(data: ArrayBuffer, offset?: number): Promise<void> {
+  onWriteRequest(data: string, offset?: number): Promise<void> {
     this.value = data
     return Promise.resolve()
   }
 
-  notify(): Promise<void> {
-    return RNBlePeripheral.notify(this.value)
+  /** Notify subscribed clients with an updated value. */
+  notify(value?: string): Promise<void> {
+    return RNBlePeripheral.notify(this.uuid, value || this.value || '')
   }
 }
 
