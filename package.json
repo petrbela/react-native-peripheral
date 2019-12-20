@@ -1,8 +1,8 @@
 {
   "name": "react-native-peripheral",
   "title": "React Native Peripheral",
-  "version": "0.0.1",
-  "description": "TODO",
+  "version": "0.0.2",
+  "description": "React Native library for building BLE peripherals.",
   "main": "lib/index",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
