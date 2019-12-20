@@ -38,12 +38,14 @@ RCT_EXPORT_MODULE();
   return @{
     @"READ_REQUEST" : READ_REQUEST,
     @"STATE_CHANGED" : STATE_CHANGED,
-    @"WRITE_REQUEST" : WRITE_REQUEST
+    @"SUBSCRIBED": SUBSCRIBED,
+    @"UNSUBSCRIBED": UNSUBSCRIBED,
+    @"WRITE_REQUEST" : WRITE_REQUEST,
   };
 }
 
 - (NSArray<NSString *> *)supportedEvents {
-  return @[ READ_REQUEST, STATE_CHANGED, WRITE_REQUEST ];
+  return @[ READ_REQUEST, STATE_CHANGED, SUBSCRIBED, UNSUBSCRIBED, WRITE_REQUEST ];
 }
 
 // Will be called when this module's first listener is added.
@@ -156,6 +158,12 @@ RCT_REMAP_METHOD(stopAdvertising,
   resolve(nil);
 }
 
+RCT_REMAP_METHOD(isAdvertising,
+                 isAdvertisingWithResolver: (RCTPromiseResolveBlock) resolve
+                 rejecter: (RCTPromiseRejectBlock) reject) {
+  resolve([manager isAdvertising]);
+}
+
 RCT_EXPORT_METHOD(respond: (NSString *)requestId
                   status: (CBATTError)status
                   value: (nullable NSString *)value
@@ -241,8 +249,8 @@ RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
   [self sendEventWithName:READ_REQUEST body:@{
     @"requestId": requestId,
     @"offset": @(request.offset),
-    @"characteristicUuid": request.characteristic.UUID,
-    @"serviceUuid": request.characteristic.service.UUID,
+    @"characteristicUuid": request.characteristic.UUID.UUIDString,
+    @"serviceUuid": request.characteristic.service.UUID.UUIDString,
   }];
 }
 
@@ -258,10 +266,26 @@ RCT_EXPORT_METHOD(notify: (CBUUID *)characteristicUuid
       @"requestId": requestId,
       @"offset": @(request.offset),
       @"value": [request.value base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength],
-      @"characteristicUuid": request.characteristic.UUID,
-      @"serviceUuid": request.characteristic.service.UUID,
+      @"characteristicUuid": request.characteristic.UUID.UUIDString,
+      @"serviceUuid": request.characteristic.service.UUID.UUIDString,
     }];
   }
+}
+
+- (void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didSubscribeToCharacteristic:(CBCharacteristic *)characteristic {
+  [self sendEventWithName:SUBSCRIBED body:@{
+    @"centralUuid": central.identifier,
+    @"characteristicUuid": characteristic.UUID.UUIDString,
+    @"serviceUuid": characteristic.service.UUID.UUIDString,
+  }];
+}
+
+-(void)peripheralManager:(CBPeripheralManager *)peripheral central:(CBCentral *)central didUnsubscribeFromCharacteristic:(CBCharacteristic *)characteristic {
+  [self sendEventWithName:UNSUBSCRIBED body:@{
+    @"centralUuid": central.identifier,
+    @"characteristicUuid": characteristic.UUID.UUIDString,
+    @"serviceUuid": characteristic.service.UUID.UUIDString,
+  }];
 }
 
 - (void)peripheralManagerIsReadyToUpdateSubscribers:(CBPeripheralManager *)peripheral {

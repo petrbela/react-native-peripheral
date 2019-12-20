@@ -1,6 +1,8 @@
 # react-native-peripheral
 
-> React Native library for building BLE peripherals.
+React Native library for building BLE peripherals.
+
+_Note:_ If you want to write a BLE Central application (that connects to BLE peripherals such as a watch or heart rate monitor), check out [react-native-ble-plx](https://github.com/Polidea/react-native-ble-plx/) or [react-native-ble-manager](https://github.com/innoveit/react-native-ble-manager/) instead.
 
 ## Installation
 
@@ -16,7 +18,7 @@ or using yarn:
 yarn add react-native-peripheral
 ```
 
-Then follow the instructions for your platform to link react-native-video into your project:
+Then follow the instructions for your platform to link react-native-peripheral into your project:
 
 <details>
   <summary><b>iOS</b></summary>
@@ -49,7 +51,7 @@ Linking is automatic in React Native >=0.60. Nothing to be done here.
 
 #### React Native 0.59 and below
 
-Run `react-native link react-native-peripheral` to link the react-native-video library.
+Run `react-native link react-native-peripheral` to link the react-native-peripheral library.
 
 If the above didn't work:
 
@@ -81,6 +83,7 @@ Peripheral.onStateChanged(state => {
       uuid: '...',
       value: '...', // Base64-encoded string
       properties: ['read', 'write'],
+      permissions: ['readable', 'writeable'],
     })
 
     // add the characteristic to a service
@@ -103,6 +106,8 @@ Peripheral.onStateChanged(state => {
 
 Note: `addService` and `startAdvertising` are conceptually independent events. A BLE peripheral can start advertising regardless of whether if has defined any services. Conversely, you can define services which can be used by previously defined clients. However, in most cases, you'll want to do both.
 
+To end a session, you can call `Peripheral.stopAdvertising`. You can also check if you're currently advertising with `Periperheral.isAdvertising`.
+
 ### Dynamic Value
 
 If you want to change the characteristic value dynamically, instead of providing `value`, implement `onReadRequest` and `onWriteRequest` (if your characteristic supports `read` and `write` operations):
@@ -110,6 +115,8 @@ If you want to change the characteristic value dynamically, instead of providing
 ```js
 new Characteristic({
   uuid: '...',
+  properties: ['read', 'write'],
+  permissions: ['readable', 'writeable'],
   onReadRequest: async (offset?: number) => {
     const value = '...' // calculate the value
     return value // you can also return a promise
@@ -141,6 +148,27 @@ If the value in your characteristic changes frequently, BLE clients may want to 
    ch.notify(value)
    ```
 
+3. (optional) You may also track when clients subscribe to notifications, for example to avoid recomputing the value when no one is listening. This is optional since a call to `notify` will deliver to all subscribers by default, and silently no-op when there are none.
+
+   ```js
+   const listeners = 0
+   const ch = new Characteristic({
+     // ...
+     onSubscribe() {
+       listeners++;
+     }
+     onUnsubscribe() {
+       listerers--;
+     }
+   })
+
+   // sometime later
+   if (listeners) {
+     const value = '...' // calculate value
+     ch.notify(value)
+   }
+   ```
+
 ### Base64
 
 This library expects the value to be a Base64-encoded string.
@@ -148,4 +176,5 @@ This library expects the value to be a Base64-encoded string.
 Depending on your use case, you may want to add a library to help you convert to Base64:
 
 - If you work with binary data, we recommend you internally store an `ArrayBuffer` or `Uint8Array` and convert it using [base64-arraybuffer](https://www.npmjs.com/package/base64-arraybuffer) or [base64-js](https://www.npmjs.com/package/base64-js)
+- For dealing with complex binary structures, try [jBinary](https://github.com/jDataView/jBinary)
 - If you want to send text data, we recommend you use [base64.js](https://www.npmjs.com/package/js-base64)

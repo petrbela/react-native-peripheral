@@ -6,6 +6,10 @@ static NSString *const READ_REQUEST =
 @"BlePeripheral:ReadRequest";
 static NSString *const STATE_CHANGED =
 @"BlePeripheral:StateChanged";
+static NSString *const SUBSCRIBED =
+@"BlePeripheral:Subscribed";
+static NSString *const UNSUBSCRIBED =
+@"BlePeripheral:Unsubscribed";
 static NSString *const WRITE_REQUEST =
 @"BlePeripheral:WriteRequest";
 

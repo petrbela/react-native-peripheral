@@ -59,6 +59,10 @@ export default class Characteristic {
     return Promise.resolve()
   }
 
+  onSubscribe() {}
+
+  onUnsubscribe() {}
+
   /** Notify subscribed clients with an updated value. */
   notify(value?: string): Promise<void> {
     return RNBlePeripheral.notify(this.uuid, value || this.value || '')

@@ -5,6 +5,7 @@
 
 RCT_ENUM_CONVERTER(
     CBATTError, (@{
+      @"success": @(CBATTErrorSuccess),
       @"invalidHandle" : @(CBATTErrorInvalidHandle),
       @"readNotPermitted" : @(CBATTErrorReadNotPermitted),
       @"writeNotPermitted" : @(CBATTErrorWriteNotPermitted),

@@ -12,6 +12,8 @@ const EventEmitter = new NativeEventEmitter(RNBlePeripheral)
 export default class Manager {
   private characteristics: { [uuid: string]: Characteristic } = {}
   private readRequestListener?: EventSubscription
+  private subscribeListener?: EventSubscription
+  private unsubscribeListener?: EventSubscription
   private writeRequestListener?: EventSubscription
 
   /**
@@ -79,7 +81,11 @@ export default class Manager {
         const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
 
         if (!ch)
-          return RNBlePeripheral.respond(params.requestId, 'invalidHandle')
+          return RNBlePeripheral.respond(
+            params.requestId,
+            'invalidHandle',
+            null
+          )
 
         ch.onReadRequest(params.offset).then(value =>
           RNBlePeripheral.respond(params.requestId, 'success', value)
@@ -98,11 +104,31 @@ export default class Manager {
         const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
 
         if (!ch)
-          return RNBlePeripheral.respond(params.requestId, 'invalidHandle')
+          return RNBlePeripheral.respond(
+            params.requestId,
+            'invalidHandle',
+            null
+          )
 
         ch.onWriteRequest(params.value, params.offset).then(() =>
-          RNBlePeripheral.respond(params.requestId, 'success')
+          RNBlePeripheral.respond(params.requestId, 'success', null)
         )
+      }
+    )
+
+    this.subscribeListener = EventEmitter.addListener(
+      RNBlePeripheral.SUBSCRIBE,
+      (params: { characteristicUuid: string; centralUuid: string }) => {
+        const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
+        if (ch) ch.onSubscribe()
+      }
+    )
+
+    this.unsubscribeListener = EventEmitter.addListener(
+      RNBlePeripheral.UNSUBSCRIBE,
+      (params: { characteristicUuid: string; centralUuid: string }) => {
+        const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
+        if (ch) ch.onUnsubscribe()
       }
     )
   }
@@ -112,11 +138,22 @@ export default class Manager {
    *
    * Call this method when you no longer want to advertise peripheral manager data.
    */
-  stopAdvertising() {
+  stopAdvertising(): Promise<void> {
     this.readRequestListener && this.readRequestListener.remove()
+    this.subscribeListener && this.subscribeListener.remove()
+    this.unsubscribeListener && this.unsubscribeListener.remove()
     this.writeRequestListener && this.writeRequestListener.remove()
 
     return RNBlePeripheral.stopAdvertising()
+  }
+
+  /**
+   * A boolean value that indicates whether the peripheral is advertising data.
+   *
+   * The value is `true` if the peripheral is advertising data as a result of successfully calling the `startAdvertising` method, and `false` if the peripheral is no longer advertising its data.
+   */
+  isAdvertising(): Promise<boolean> {
+    return RNBlePeripheral.isAdvertising()
   }
 
   /**
