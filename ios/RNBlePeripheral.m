@@ -161,7 +161,7 @@ RCT_REMAP_METHOD(stopAdvertising,
 RCT_REMAP_METHOD(isAdvertising,
                  isAdvertisingWithResolver: (RCTPromiseResolveBlock) resolve
                  rejecter: (RCTPromiseRejectBlock) reject) {
-  resolve([manager isAdvertising]);
+  resolve(@([manager isAdvertising]));
 }
 
 RCT_EXPORT_METHOD(respond: (NSString *)requestId

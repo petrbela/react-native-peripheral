@@ -117,7 +117,7 @@ export default class Manager {
     )
 
     this.subscribeListener = EventEmitter.addListener(
-      RNBlePeripheral.SUBSCRIBE,
+      RNBlePeripheral.SUBSCRIBED,
       (params: { characteristicUuid: string; centralUuid: string }) => {
         const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
         if (ch) ch.onSubscribe()
@@ -125,7 +125,7 @@ export default class Manager {
     )
 
     this.unsubscribeListener = EventEmitter.addListener(
-      RNBlePeripheral.UNSUBSCRIBE,
+      RNBlePeripheral.UNSUBSCRIBED,
       (params: { characteristicUuid: string; centralUuid: string }) => {
         const ch = this.characteristics[params.characteristicUuid.toLowerCase()]
         if (ch) ch.onUnsubscribe()
